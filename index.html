@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AviaCalc Pro | C152 W&B</title>
+    <style>
+        :root {
+            --primary: #00d2ff;
+            --accent: #3a7bd5;
+            --bg: #0f172a;
+            --card: #1e293b;
+        }
+
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: var(--bg); 
+            color: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 420px;
+            background: var(--card);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+
+        header { text-align: center; margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 10px; }
+        header h1 { margin: 0; font-size: 22px; color: var(--primary); }
+        .specs { font-size: 10px; color: #94a3b8; margin-top: 5px; }
+
+        .unit-switch {
+            display: flex;
+            background: #0f172a;
+            padding: 5px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #334155;
+        }
+
+        .unit-switch button {
+            flex: 1; padding: 12px; border: none; background: none;
+            color: #94a3b8; font-weight: bold; cursor: pointer; border-radius: 8px;
+        }
+
+        .active-unit { background: var(--accent) !important; color: white !important; }
+
+        .field { margin-bottom: 15px; }
+        label { display: block; font-size: 11px; color: var(--primary); margin-bottom: 5px; font-weight: bold; text-transform: uppercase; }
+        input { 
+            width: 100%; padding: 12px; background: #0f172a; border: 1px solid #334155; 
+            color: white; border-radius: 8px; box-sizing: border-box; font-size: 16px;
+        }
+
+        .calc-btn {
+            width: 100%; padding: 16px; background: var(--primary); border: none;
+            border-radius: 10px; color: #000; font-weight: 900; font-size: 16px;
+            cursor: pointer; margin-top: 10px; transition: 0.3s;
+        }
+
+        .calc-btn:hover { background: #fff; }
+
+        #results {
+            margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.4);
+            border-radius: 12px; display: none; border: 1px solid #334155;
+        }
+
+        .res-line { display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #2d3748; padding-bottom: 4px; }
+        .status { text-align: center; padding: 12px; border-radius: 8px; font-weight: 900; margin-top: 15px; text-transform: uppercase; }
+
+        /* Estilo da Autoria */
+        footer {
+            margin-top: 25px;
+            font-size: 12px;
+            color: #64748b;
+            letter-spacing: 2px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .signature { color: var(--primary); }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <header>
+        <h1>PESO E BALANCEAMENTO C152</h1>
+        <div class="specs">MTOW: 757kg (1670lb) | Fuel: AvGas (0.72 kg/L)</div>
+    </header>
+
+    <div class="unit-switch">
+        <button id="btn-imperial" class="active-unit" onclick="setMode('imperial')">IMPERIAL (lb)</button>
+        <button id="btn-metric" onclick="setMode('metric')">MÉTRICO (kg)</button>
+    </div>
+
+    <div class="field">
+        <label>Peso Básico Vazio (<span class="u-w">lb</span>)</label>
+        <input type="number" id="inp-empty" value="1081">
+    </div>
+
+    <div class="field">
+        <label>Piloto + Passageiro (<span class="u-w">lb</span>)</label>
+        <input type="number" id="inp-crew" value="0">
+    </div>
+
+    <div class="field">
+        <label>Combustível (<span id="u-f">gal</span>)</label>
+        <input type="number" id="inp-fuel" value="0">
+    </div>
+
+    <div class="field">
+        <label>Bagagem (<span class="u-w">lb</span>)</label>
+        <input type="number" id="inp-bag" value="0">
+    </div>
+
+    <button class="calc-btn" onclick="calculate()">CALCULAR W&B</button>
+
+    <div id="results">
+        <div class="res-line"><span>Peso Total:</span> <span id="out-w"></span></div>
+        <div class="res-line"><span>C.G. Atual:</span> <span id="out-cg" style="color:var(--primary)"></span></div>
+        <div id="status-box" class="status"></div>
+    </div>
+</div>
+
+<footer>
+    BY <span class="signature">Jordi Lima</span>
+</footer>
+
+<script>
+    let currentSystem = 'imperial';
+    const LB_TO_KG = 0.453592;
+    const GAL_TO_L = 3.78541;
+    const AVGAS_LBS_PER_GAL = 6.0;
+
+    function setMode(newSystem) {
+        if (newSystem === currentSystem) return;
+        const weightFields = ['inp-empty', 'inp-crew', 'inp-bag'];
+        const fuelField = 'inp-fuel';
+
+        if (newSystem === 'metric') {
+            weightFields.forEach(id => {
+                let val = document.getElementById(id).value;
+                if(val) document.getElementById(id).value = (val * LB_TO_KG).toFixed(2);
+            });
+            let fVal = document.getElementById(fuelField).value;
+            if(fVal) document.getElementById(fuelField).value = (fVal * GAL_TO_L).toFixed(2);
+
+            document.getElementById('btn-metric').classList.add('active-unit');
+            document.getElementById('btn-imperial').classList.remove('active-unit');
+            document.querySelectorAll('.u-w').forEach(el => el.innerText = 'kg');
+            document.getElementById('u-f').innerText = 'L';
+        } else {
+            weightFields.forEach(id => {
+                let val = document.getElementById(id).value;
+                if(val) document.getElementById(id).value = (val / LB_TO_KG).toFixed(2);
+            });
+            let fVal = document.getElementById(fuelField).value;
+            if(fVal) document.getElementById(fuelField).value = (fVal / GAL_TO_L).toFixed(2);
+
+            document.getElementById('btn-imperial').classList.add('active-unit');
+            document.getElementById('btn-metric').classList.remove('active-unit');
+            document.querySelectorAll('.u-w').forEach(el => el.innerText = 'lb');
+            document.getElementById('u-f').innerText = 'gal';
+        }
+        currentSystem = newSystem;
+    }
+
+    function calculate() {
+        const ARM_EMPTY = 29.0, ARM_CREW = 39.0, ARM_FUEL = 42.2, ARM_BAG = 64.0;
+        const MAX_WEIGHT_LBS = 1670;
+        
+        let wE = parseFloat(document.getElementById('inp-empty').value) || 0;
+        let wC = parseFloat(document.getElementById('inp-crew').value) || 0;
+        let fQ = parseFloat(document.getElementById('inp-fuel').value) || 0;
+        let wB = parseFloat(document.getElementById('inp-bag').value) || 0;
+
+        let totalWeightLbs, totalMoment;
+
+        if (currentSystem === 'metric') {
+            let we_l = wE / LB_TO_KG;
+            let wc_l = wC / LB_TO_KG;
+            let wb_l = wB / LB_TO_KG;
+            let wf_l = (fQ / GAL_TO_L) * AVGAS_LBS_PER_GAL;
+            totalWeightLbs = we_l + wc_l + wf_l + wb_l;
+            totalMoment = (we_l * ARM_EMPTY) + (wc_l * ARM_CREW) + (wf_l * ARM_FUEL) + (wb_l * ARM_BAG);
+        } else {
+            totalWeightLbs = wE + wC + (fQ * AVGAS_LBS_PER_GAL) + wB;
+            totalMoment = (wE * ARM_EMPTY) + (wC * ARM_CREW) + (fQ * AVGAS_LBS_PER_GAL * ARM_FUEL) + (wB * ARM_BAG);
+        }
+
+        let cg = totalMoment / totalWeightLbs;
+        document.getElementById('results').style.display = 'block';
+        let weightOut = (currentSystem === 'imperial') ? totalWeightLbs : (totalWeightLbs * LB_TO_KG);
+        document.getElementById('out-w').innerText = weightOut.toFixed(2) + (currentSystem === 'imperial' ? ' lb' : ' kg');
+        document.getElementById('out-cg').innerText = cg.toFixed(2) + " pol";
+
+        const sBox = document.getElementById('status-box');
+        const weightOk = totalWeightLbs <= MAX_WEIGHT_LBS;
+        const cgOk = cg >= 31.0 && cg <= 36.5;
+
+        if (weightOk && cgOk) {
+            sBox.innerText = "✓ VOO AUTORIZADO";
+            sBox.style.background = "#064e3b";
+            sBox.style.color = "#34d399";
+        } else {
+            sBox.innerText = "⚠ FORA DOS LIMITES";
+            sBox.style.background = "#7f1d1d";
+            sBox.style.color = "#f87171";
+        }
+    }
+</script>
+</body>
+</html>
